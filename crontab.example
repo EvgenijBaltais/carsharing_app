@@ -1,0 +1,8 @@
+# Узнайте путь к PHP командой: command -v php
+# При необходимости замените /usr/bin/php на путь, который вернула команда.
+
+# Снимок статусов автомобилей каждые 30 минут.
+*/30 * * * * /usr/bin/php /var/www/maot.ru/data/www/areal-spik.ru/collector.php >> /var/www/maot.ru/data/logs/carsharing_collector.log 2>&1
+
+# Обновление каталога моделей и марок ежедневно в 00:00.
+0 0 * * * /usr/bin/php /var/www/maot.ru/data/www/areal-spik.ru/daily_catalog_update.php >> /var/www/maot.ru/data/logs/carsharing_catalog.log 2>&1

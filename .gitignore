@@ -1,6 +1,7 @@
 .env
 .env.*
 !.env.example
+/database_dump.sql
 *.log
 *.tmp
 Thumbs.db

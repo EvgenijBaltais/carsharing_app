@@ -1,5 +1,5 @@
 SET NAMES utf8mb4;
-USE `voron`;
+USE `carsharing_app`;
 
 ALTER TABLE `vehicles`
   ADD COLUMN `state_info` VARCHAR(255) NULL AFTER `source_status_code`,

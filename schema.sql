@@ -1,10 +1,17 @@
 SET NAMES utf8mb4;
 
-CREATE DATABASE IF NOT EXISTS `voron`
+CREATE DATABASE IF NOT EXISTS `carsharing_app`
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;
 
-USE `voron`;
+USE `carsharing_app`;
+
+CREATE TABLE IF NOT EXISTS `schema_migrations` (
+  `migration` VARCHAR(190) NOT NULL,
+  `checksum` CHAR(64) NOT NULL,
+  `applied_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`migration`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `vehicle_types` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -105,6 +112,15 @@ CREATE TABLE IF NOT EXISTS `statuses` (
   UNIQUE KEY `uq_statuses_slug` (`slug`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `update_intervals` (
+  `code` VARCHAR(50) NOT NULL,
+  `title` VARCHAR(150) NOT NULL,
+  `interval_minutes` INT UNSIGNED NOT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS `collector_runs` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `endpoint` VARCHAR(255) NULL,
@@ -149,6 +165,7 @@ CREATE TABLE IF NOT EXISTS `vehicles` (
   `is_allocated` TINYINT(1) NULL,
   `first_seen_at` DATETIME NOT NULL,
   `last_seen_at` DATETIME NOT NULL,
+  `new_until` DATETIME NULL,
   `is_active` TINYINT(1) NOT NULL DEFAULT 1,
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
@@ -249,3 +266,8 @@ ON DUPLICATE KEY UPDATE
   `description` = VALUES(`description`),
   `sort_order` = VALUES(`sort_order`),
   `is_active` = 1;
+
+INSERT IGNORE INTO `update_intervals` (`code`, `title`, `interval_minutes`)
+VALUES
+  ('vehicle_statuses', 'Статусы автомобилей', 30),
+  ('vehicle_catalog', 'Модели и марки автомобилей', 1440);

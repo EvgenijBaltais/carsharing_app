@@ -1,5 +1,5 @@
 SET NAMES utf8mb4;
-USE `voron`;
+USE `carsharing_app`;
 
 ALTER TABLE `collector_runs`
   CHANGE COLUMN `conflicts_count` `overlap_count` INT UNSIGNED NOT NULL DEFAULT 0;

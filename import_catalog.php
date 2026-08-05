@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/config.php';
+
 const DEFAULT_CATALOG_PATH = 'C:\\Voron\\catalog.json';
 
 function repairText(?string $value): string
@@ -87,8 +89,8 @@ if (!is_array($categories) || $categories === []) {
 
 $dbHost = getenv('VORON_DB_HOST') ?: '127.0.0.1';
 $dbPort = getenv('VORON_DB_PORT') ?: '3306';
-$dbName = getenv('VORON_DB_NAME') ?: 'voron';
-$dbUser = getenv('VORON_DB_USER') ?: 'root';
+$dbName = getenv('VORON_DB_NAME') ?: 'carsharing_app';
+$dbUser = getenv('VORON_DB_USER') ?: 'carsharing_app';
 $dbPass = getenv('VORON_DB_PASS');
 $dbPass = $dbPass === false ? '' : $dbPass;
 

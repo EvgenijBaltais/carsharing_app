@@ -1,5 +1,5 @@
 SET NAMES utf8mb4;
-USE `voron`;
+USE `carsharing_app`;
 
 ALTER TABLE `collector_runs`
   ADD COLUMN `free_received` INT UNSIGNED NOT NULL DEFAULT 0 AFTER `vehicles_received`,

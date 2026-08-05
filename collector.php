@@ -2,7 +2,19 @@
 
 declare(strict_types=1);
 
-session_start();
+require_once __DIR__ . '/config.php';
+
+$isCli = PHP_SAPI === 'cli';
+if (!$isCli) {
+    session_start();
+}
+
+if ($isCli && in_array('--help', $argv, true)) {
+    echo "Сбор статусов автомобилей Voron.\n";
+    echo "Запуск: php collector.php\n";
+    echo "Используются координаты по умолчанию: 55.7558, 37.6173.\n";
+    exit(0);
+}
 
 function e(string $value): string
 {
@@ -184,8 +196,8 @@ function database(): PDO
 {
     $host = getenv('VORON_DB_HOST') ?: '127.0.0.1';
     $port = getenv('VORON_DB_PORT') ?: '3306';
-    $name = getenv('VORON_DB_NAME') ?: 'voron';
-    $user = getenv('VORON_DB_USER') ?: 'root';
+    $name = getenv('VORON_DB_NAME') ?: 'carsharing_app';
+    $user = getenv('VORON_DB_USER') ?: 'carsharing_app';
     $pass = getenv('VORON_DB_PASS');
     $pass = $pass === false ? '' : $pass;
 
@@ -201,7 +213,7 @@ function database(): PDO
     );
 }
 
-if (!isset($_SESSION['collector_token'])) {
+if (!$isCli && !isset($_SESSION['collector_token'])) {
     $_SESSION['collector_token'] = bin2hex(random_bytes(24));
 }
 
@@ -212,12 +224,12 @@ $errorMessage = null;
 $result = null;
 $recentRuns = [];
 
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+if ($isCli || ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     $token = isset($_POST['token']) ? (string) $_POST['token'] : '';
     $latitude = filter_var($latitudeInput, FILTER_VALIDATE_FLOAT);
     $longitude = filter_var($longitudeInput, FILTER_VALIDATE_FLOAT);
 
-    if (!hash_equals((string) $_SESSION['collector_token'], $token)) {
+    if (!$isCli && !hash_equals((string) $_SESSION['collector_token'], $token)) {
         $errorMessage = 'Защитный токен устарел. Обновите страницу и повторите действие.';
     } elseif ($latitude === false || $latitude < -90 || $latitude > 90) {
         $errorMessage = 'Широта должна быть числом от -90 до 90.';
@@ -300,12 +312,12 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                     (external_id, title, category_title, base_category_title, type_external_id,
                      fuel_level, latitude, longitude, current_status_id, source_status_code,
                      state_info, state_time_seconds, state_started_at, status_source_endpoint,
-                     in_garage, service_mode, is_allocated, first_seen_at, last_seen_at, is_active)
+                     in_garage, service_mode, is_allocated, first_seen_at, last_seen_at, new_until, is_active)
                  VALUES
                     (:external_id, :title, :category_title, :base_category_title, :type_external_id,
                      :fuel_level, :latitude, :longitude, :current_status_id, :source_status_code,
                      :state_info, :state_time_seconds, :state_started_at, :status_source_endpoint,
-                     :in_garage, :service_mode, :is_allocated, :first_seen_at, :last_seen_at, 1)
+                     :in_garage, :service_mode, :is_allocated, :first_seen_at, :last_seen_at, :new_until, 1)
                  ON DUPLICATE KEY UPDATE
                     id = LAST_INSERT_ID(id),
                     title = COALESCE(VALUES(title), title),
@@ -385,6 +397,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                     'is_allocated' => nullableBool($vehicle['isAllocated'] ?? null),
                     'first_seen_at' => $observedAt->format('Y-m-d H:i:s'),
                     'last_seen_at' => $observedAt->format('Y-m-d H:i:s'),
+                    'new_until' => $observedAt->modify('+3 days')->format('Y-m-d H:i:s'),
                 ];
                 $upsertVehicle->execute($values);
                 $vehicleId = (int) $pdo->lastInsertId();
@@ -456,7 +469,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 'counts' => $counts,
             ];
             $message = 'Снимок успешно записан в базу данных.';
-            $_SESSION['collector_token'] = bin2hex(random_bytes(24));
+            if (!$isCli) {
+                $_SESSION['collector_token'] = bin2hex(random_bytes(24));
+            }
         } catch (Throwable $exception) {
             if ($pdo instanceof PDO && $pdo->inTransaction()) {
                 $pdo->rollBack();
@@ -481,6 +496,27 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             $errorMessage = 'Снимок не записан: ' . $exception->getMessage();
         }
     }
+}
+
+if ($isCli) {
+    if ($errorMessage !== null) {
+        fwrite(STDERR, $errorMessage . "\n");
+        exit(1);
+    }
+    if ($result === null) {
+        fwrite(STDERR, "Сборщик не вернул результат.\n");
+        exit(1);
+    }
+
+    echo sprintf(
+        "Снимок записан. Запуск №%d, автомобилей: %d, свободных: %d, занятых: %d, пересечений: %d.\n",
+        (int) $result['run_id'],
+        (int) $result['total'],
+        (int) $result['free_received'],
+        (int) $result['busy_received'],
+        (int) $result['overlap']
+    );
+    exit(0);
 }
 
 try {

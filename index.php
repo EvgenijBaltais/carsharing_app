@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/config.php';
+
 function e(string $value): string
 {
     return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
@@ -9,8 +11,8 @@ function e(string $value): string
 
 $dbHost = getenv('VORON_DB_HOST') ?: '127.0.0.1';
 $dbPort = getenv('VORON_DB_PORT') ?: '3306';
-$dbName = getenv('VORON_DB_NAME') ?: 'voron';
-$dbUser = getenv('VORON_DB_USER') ?: 'root';
+$dbName = getenv('VORON_DB_NAME') ?: 'carsharing_app';
+$dbUser = getenv('VORON_DB_USER') ?: 'carsharing_app';
 $dbPass = getenv('VORON_DB_PASS');
 $dbPass = $dbPass === false ? '' : $dbPass;
 
